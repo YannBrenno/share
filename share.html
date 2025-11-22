@@ -1,62 +1,172 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<title>Compartilhar</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Compartilhar resultado</title>
 <style>
-  body { 
-    font-family: sans-serif; 
-    background: #111;
-    color: #fff;
-    text-align: center;
-    padding: 20px;
+  body{
+    font-family:system-ui,Arial,sans-serif;
+    background:#0f0f0f;
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:20px;
+    gap:18px;
+    text-align:center;
   }
-  img {
-    max-width: 90vw;
-    border-radius: 10px;
+
+  .box{
+    background:#1b1b1b;
+    padding:16px;
+    border-radius:12px;
+    width:95%;
+    max-width:420px;
+    box-shadow:0 0 15px #0008;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
   }
-  button {
-    margin-top: 20px;
-    padding: 15px 30px;
-    font-size: 17px;
+
+  img{
+    max-width:100%;
+    border-radius:10px;
+  }
+
+  .avatar{
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid #0ea5a4;
+  }
+
+  button{
+    padding:12px 20px;
+    border-radius:10px;
+    border:0;
+    background:#0ea5a4;
+    color:#022;
+    font-weight:600;
+    cursor:pointer;
+    font-size:1rem;
+  }
+
+  button:disabled{
+    background:#555;
+    color:#999;
+  }
+
+  .notice{
+    color:#ffc96b;
+    font-size:.9rem;
   }
 </style>
 </head>
 <body>
 
-<h2>Resultado</h2>
-<img id="pic" />
+  <h2>Resultado do Jogador</h2>
 
-<button id="shareBtn">Compartilhar</button>
+  <div id="info" class="notice"></div>
+
+  <div class="box">
+      <img id="avatar" class="avatar" style="display:none" />
+      <img id="pic" alt="print" />
+  </div>
+
+  <div style="display:flex;gap:12px">
+    <button id="shareBtn">Compartilhar</button>
+    <button id="downloadBtn">Baixar</button>
+  </div>
 
 <script>
-const player = new URLSearchParams(location.search).get("player");
+(async function(){
 
-fetch(`https://qajourneymultiplayer-default-rtdb.firebaseio.com/print/${player}.json`)
-  .then(r => r.json())
-  .then(data => {
-    document.getElementById("pic").src = data.img;
-  });
+  const info = document.getElementById('info');
+  const pic = document.getElementById('pic');
+  const avatar = document.getElementById('avatar');
 
-// Botão de compartilhar
-document.getElementById("shareBtn").onclick = async () => {
+  const params = new URLSearchParams(window.location.search);
+  const player = params.get('player');
 
-  const imgUrl = document.getElementById("pic").src;
-  const blob = await fetch(imgUrl).then(r => r.blob());
-  const file = new File([blob], "resultado.png", { type: "image/png" });
-
-  // Web Share API (Android)
-  if (navigator.share) {
-    navigator.share({
-      files: [file],
-      title: "Meu Resultado",
-      text: "Olha meu resultado!"
-    });
-  } else {
-    alert("Seu navegador não suporta compartilhamento direto.");
+  if(!player){
+    info.textContent = 'Erro: use ?player=NOME na URL.';
+    pic.style.display = 'none';
+    return;
   }
-}
-</script>
 
+  info.textContent = 'Carregando dados de ' + player + '...';
+
+  try{
+    const resp = await fetch(
+      `https://qajourneymultiplayer-default-rtdb.firebaseio.com/print/${encodeURIComponent(player)}.json`
+    );
+
+    if(!resp.ok) throw new Error(resp.status + ' ' + resp.statusText);
+
+    const data = await resp.json();
+
+    if(!data){
+      info.textContent = 'Nenhum registro encontrado para "'+player+'".';
+      pic.style.display = 'none';
+      return;
+    }
+
+    // Imagem principal (print)
+    if(data.img){
+      pic.src = data.img;
+    } else {
+      pic.style.display = 'none';
+    }
+
+    // Avatar, se existir
+    if(data.avatar){
+      avatar.src = data.avatar;
+      avatar.style.display = 'block';
+    }
+
+    info.textContent = 'Pronto! Você pode compartilhar abaixo.';
+
+  }catch(e){
+    info.textContent = 'Erro ao carregar dados: ' + e.message;
+    pic.style.display = 'none';
+    return;
+  }
+
+  // Baixar imagem
+  document.getElementById('downloadBtn').onclick = () => {
+    if(!pic.src) return;
+    const a = document.createElement('a');
+    a.href = pic.src;
+    a.download = player + '-resultado.png';
+    a.click();
+  };
+
+  // Compartilhar (se suportado)
+  document.getElementById('shareBtn').onclick = async () => {
+    try{
+      const r = await fetch(pic.src);
+      const blob = await r.blob();
+      const file = new File([blob], player + '-resultado.png', { type: blob.type });
+
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        await navigator.share({
+          files: [file],
+          title: 'Meu resultado',
+          text: 'Olha meu resultado no jogo!'
+        });
+      } else {
+        alert('Seu navegador não suporta compartilhamento direto. Use Baixar.');
+      }
+
+    }catch(e){
+      alert('Erro ao compartilhar: ' + e.message);
+    }
+  };
+
+})();
+</script>
 </body>
 </html>
