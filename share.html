@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Compartilhar resultado</title>
+
 <style>
   body{
     font-family:system-ui,Arial,sans-serif;
@@ -63,6 +64,13 @@
     color:#ffc96b;
     font-size:.9rem;
   }
+
+  #qrcode {
+    margin-top: 20px;
+    background:#fff;
+    padding:12px;
+    border-radius:8px;
+  }
 </style>
 </head>
 <body>
@@ -70,6 +78,9 @@
   <h2>Resultado do Jogador</h2>
 
   <div id="info" class="notice"></div>
+
+  <!-- QR CODE -->
+  <img id="qrcode" alt="QR Code" />
 
   <div class="box">
       <img id="avatar" class="avatar" style="display:none" />
@@ -87,6 +98,15 @@
   const info = document.getElementById('info');
   const pic = document.getElementById('pic');
   const avatar = document.getElementById('avatar');
+
+  // 📌 Gera QR code com base na URL atual
+  const currentURL = window.location.href;
+  const qr = document.getElementById("qrcode");
+  qr.src = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(currentURL)}`;
+
+  // -------------------------
+  //   BUSCA DO PLAYER
+  // -------------------------
 
   const params = new URLSearchParams(window.location.search);
   const player = params.get('player');
@@ -114,14 +134,14 @@
       return;
     }
 
-    // Imagem principal (print)
+    // Imagem principal
     if(data.img){
       pic.src = data.img;
     } else {
       pic.style.display = 'none';
     }
 
-    // Avatar, se existir
+    // Avatar
     if(data.avatar){
       avatar.src = data.avatar;
       avatar.style.display = 'block';
@@ -135,7 +155,10 @@
     return;
   }
 
-  // Baixar imagem
+  // -------------------------
+  //   DOWNLOAD
+  // -------------------------
+
   document.getElementById('downloadBtn').onclick = () => {
     if(!pic.src) return;
     const a = document.createElement('a');
@@ -144,7 +167,10 @@
     a.click();
   };
 
-  // Compartilhar (se suportado)
+  // -------------------------
+  //   COMPARTILHAR
+  // -------------------------
+
   document.getElementById('shareBtn').onclick = async () => {
     try{
       const r = await fetch(pic.src);
