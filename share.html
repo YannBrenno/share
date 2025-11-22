@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compartilhar</title>
+<style>
+  body { 
+    font-family: sans-serif; 
+    background: #111;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+  }
+  img {
+    max-width: 90vw;
+    border-radius: 10px;
+  }
+  button {
+    margin-top: 20px;
+    padding: 15px 30px;
+    font-size: 17px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Resultado</h2>
+<img id="pic" />
+
+<button id="shareBtn">Compartilhar</button>
+
+<script>
+const player = new URLSearchParams(location.search).get("player");
+
+fetch(`https://qajourneymultiplayer-default-rtdb.firebaseio.com/print/${player}.json`)
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById("pic").src = data.img;
+  });
+
+// Botão de compartilhar
+document.getElementById("shareBtn").onclick = async () => {
+
+  const imgUrl = document.getElementById("pic").src;
+  const blob = await fetch(imgUrl).then(r => r.blob());
+  const file = new File([blob], "resultado.png", { type: "image/png" });
+
+  // Web Share API (Android)
+  if (navigator.share) {
+    navigator.share({
+      files: [file],
+      title: "Meu Resultado",
+      text: "Olha meu resultado!"
+    });
+  } else {
+    alert("Seu navegador não suporta compartilhamento direto.");
+  }
+}
+</script>
+
+</body>
+</html>
